@@ -22,7 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,10 +31,10 @@ public class ZTranslationManager implements TranslationManager {
     private static final String JSON_URL = "https://raw.githubusercontent.com/Maxlego08/minecraft-assets/1.21/assets/minecraft/lang/_list.json";
     private static final String BASE_URL = "https://raw.githubusercontent.com/Maxlego08/minecraft-assets/1.21/assets/minecraft/lang/";
     private final ItemStackerPlugin plugin;
-    private final Map<String, String> translationToKeys = new HashMap<>();
-    private final Map<String, String> keyToMaterials = new HashMap<>();
-    private final Map<String, String> keyToTranslations = new HashMap<>();
-    private Map<Material, String> materialToKeys = new HashMap<>();
+    private final Map<String, String> translationToKeys = new ConcurrentHashMap<>();
+    private final Map<String, String> keyToMaterials = new ConcurrentHashMap<>();
+    private final Map<String, String> keyToTranslations = new ConcurrentHashMap<>();
+    private Map<Material, String> materialToKeys = new ConcurrentHashMap<>();
 
     public ZTranslationManager(ItemStackerPlugin plugin) {
         this.plugin = plugin;
@@ -104,7 +104,7 @@ public class ZTranslationManager implements TranslationManager {
     }
 
     private Map<Material, String> getTranslationMaterials() {
-        Map<Material, String> values = new HashMap<>();
+        Map<Material, String> values = new ConcurrentHashMap<>();
         for (Material value : Material.values()) {
             values.put(value, value.getTranslationKey());
         }

@@ -36,10 +36,12 @@ public class ZItem extends ZUtils implements StackedItem {
         var data = item.getPersistentDataContainer();
 
         this.amount = data.getOrDefault(AMOUNT_KEY, PersistentDataType.INTEGER, item.getItemStack().getAmount());
-        data.set(AMOUNT_KEY, PersistentDataType.INTEGER, this.amount);
-
-        this.item.getItemStack().setAmount(1);
-        setItemName();
+        
+        foliaLib.getScheduler().runAtEntity(item, task -> {
+            data.set(AMOUNT_KEY, PersistentDataType.INTEGER, this.amount);
+            this.item.getItemStack().setAmount(1);
+            setItemName();
+        });
     }
 
     @Override
@@ -60,8 +62,10 @@ public class ZItem extends ZUtils implements StackedItem {
     @Override
     public void setAmount(int amount) {
         this.amount = amount;
-        item.getPersistentDataContainer().set(AMOUNT_KEY, PersistentDataType.INTEGER, amount);
-        setItemName();
+        foliaLib.getScheduler().runAtEntity(item, task -> {
+            item.getPersistentDataContainer().set(AMOUNT_KEY, PersistentDataType.INTEGER, amount);
+            setItemName();
+        });
     }
 
     @Override
@@ -79,8 +83,12 @@ public class ZItem extends ZUtils implements StackedItem {
 
         String name = Config.itemName.replace("%amount%", String.valueOf(this.amount));
         name = name.replace("%name%", translationManager.translateItemStack(item.getItemStack()));
-        item.setCustomNameVisible(true);
-        item.setCustomName(color(name));
+        
+        final String finalName = name;
+        foliaLib.getScheduler().runAtEntity(item, task -> {
+            item.setCustomNameVisible(true);
+            item.setCustomName(color(finalName));
+        });
     }
 
     @Override
@@ -115,7 +123,11 @@ public class ZItem extends ZUtils implements StackedItem {
 
                 int newAmount = Math.min(itemStack.getMaxStackSize(), this.amount);
                 this.amount -= newAmount;
-                item.getPersistentDataContainer().set(AMOUNT_KEY, PersistentDataType.INTEGER, this.amount);
+                
+                final int savedAmount = this.amount;
+                foliaLib.getScheduler().runAtEntity(item, task -> {
+                    item.getPersistentDataContainer().set(AMOUNT_KEY, PersistentDataType.INTEGER, savedAmount);
+                });
 
                 ItemStack newItemStack = itemStack.clone();
                 newItemStack.setAmount(newAmount);
@@ -128,7 +140,11 @@ public class ZItem extends ZUtils implements StackedItem {
                 int newAmount = Math.min(freeAmount, this.amount);
 
                 this.amount -= newAmount;
-                item.getPersistentDataContainer().set(AMOUNT_KEY, PersistentDataType.INTEGER, this.amount);
+                
+                final int savedAmount = this.amount;
+                foliaLib.getScheduler().runAtEntity(item, task -> {
+                    item.getPersistentDataContainer().set(AMOUNT_KEY, PersistentDataType.INTEGER, savedAmount);
+                });
 
                 currentItem.setAmount(currentItem.getAmount() + newAmount);
             }
@@ -154,7 +170,7 @@ public class ZItem extends ZUtils implements StackedItem {
 
     @Override
     public void remove() {
-        item.remove();
+        foliaLib.getScheduler().runAtEntity(item, task -> item.remove());
     }
 
     @Override
