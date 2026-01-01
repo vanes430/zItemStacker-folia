@@ -109,52 +109,60 @@ public class ZItem extends ZUtils implements StackedItem {
     @Override
     public boolean give(Inventory inventory) {
 
-        int inventorySize = inventory.getType().equals(InventoryType.HOPPER) ? 5 : 36;
-        ItemStack itemStack = this.item.getItemStack();
-        for (int a = 0; a != inventorySize; a++) {
+        Runnable logic = () -> {
+            int inventorySize = inventory.getType().equals(InventoryType.HOPPER) ? 5 : 36;
+            ItemStack itemStack = this.item.getItemStack();
+            boolean changed = false;
 
-            if (this.amount <= 0) {
-                return true;
+            for (int a = 0; a != inventorySize; a++) {
+
+                if (this.amount <= 0) {
+                    break;
+                }
+
+                ItemStack currentItem = inventory.getItem(a);
+
+                if (currentItem == null) {
+
+                    int newAmount = Math.min(itemStack.getMaxStackSize(), this.amount);
+                    this.amount -= newAmount;
+                    changed = true;
+
+                    ItemStack newItemStack = itemStack.clone();
+                    newItemStack.setAmount(newAmount);
+
+                    inventory.addItem(newItemStack);
+
+                } else if (itemStack.isSimilar(currentItem) && currentItem.getAmount() < currentItem.getMaxStackSize()) {
+
+                    int freeAmount = currentItem.getMaxStackSize() - currentItem.getAmount();
+                    int newAmount = Math.min(freeAmount, this.amount);
+
+                    this.amount -= newAmount;
+                    changed = true;
+
+                    currentItem.setAmount(currentItem.getAmount() + newAmount);
+                }
             }
 
-            ItemStack currentItem = inventory.getItem(a);
-
-            if (currentItem == null) {
-
-                int newAmount = Math.min(itemStack.getMaxStackSize(), this.amount);
-                this.amount -= newAmount;
-                
-                final int savedAmount = this.amount;
+            if (changed || this.amount <= 0) {
+                final int finalAmount = this.amount;
                 foliaLib.getScheduler().runAtEntity(item, task -> {
-                    item.getPersistentDataContainer().set(AMOUNT_KEY, PersistentDataType.INTEGER, savedAmount);
+                    item.getPersistentDataContainer().set(AMOUNT_KEY, PersistentDataType.INTEGER, finalAmount);
+                    setItemName();
                 });
-
-                ItemStack newItemStack = itemStack.clone();
-                newItemStack.setAmount(newAmount);
-
-                inventory.addItem(newItemStack);
-
-            } else if (itemStack.isSimilar(currentItem) && currentItem.getAmount() < currentItem.getMaxStackSize()) {
-
-                int freeAmount = currentItem.getMaxStackSize() - currentItem.getAmount();
-                int newAmount = Math.min(freeAmount, this.amount);
-
-                this.amount -= newAmount;
-                
-                final int savedAmount = this.amount;
-                foliaLib.getScheduler().runAtEntity(item, task -> {
-                    item.getPersistentDataContainer().set(AMOUNT_KEY, PersistentDataType.INTEGER, savedAmount);
-                });
-
-                currentItem.setAmount(currentItem.getAmount() + newAmount);
             }
+        };
 
-            if (this.amount <= 0) {
-                return true;
-            }
+        org.bukkit.inventory.InventoryHolder holder = inventory.getHolder();
+        if (holder instanceof org.bukkit.entity.Entity entity) {
+            foliaLib.getScheduler().runAtEntity(entity, task -> logic.run());
+        } else if (holder instanceof org.bukkit.block.BlockState blockState) {
+            foliaLib.getScheduler().runAtLocation(blockState.getLocation(), task -> logic.run());
+        } else {
+            logic.run();
         }
 
-        setItemName();
         return true;
     }
 
